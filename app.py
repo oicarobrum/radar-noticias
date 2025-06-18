@@ -1,64 +1,36 @@
 import streamlit as st
-import requests
-from wordcloud import WordCloud
-import matplotlib.pyplot as plt
+from utils.youtube_scraper import get_youtube_data
+from utils.wordcloud import generate_wordcloud
+import pandas as pd
+import os
+from dotenv import load_dotenv
 
-# Sua chave da API do YouTube
-API_KEY = "AIzaSyBdS1g4qPTohtoz1yzSpWGBVCKrMJzN4v8"
+# Configuração
+load_dotenv()
+st.set_page_config(layout="wide", page_title="Radar de Notícias")
 
-# IDs dos canais
-CANAIS = {
-    "UOL": "UCJ6w9AUgHSqv49QjGcgq4pA",
-    "CartaCapital": "UCqpeJk1vW6EQqRQFyoqUeVg"
-}
+# Dados fixos (substitua com seus canais)
+YOUTUBE_CHANNELS = ["UCJF6Rl6aLO7GgfvQKoWqZfw"]  # CartaCapital
+API_KEY = os.getenv("YOUTUBE_API_KEY") or "AIzaSyBdS1g4qPTohtoz1yzSpWGBVCKrMJzN4v8"  # Sua chave
 
-def buscar_videos(canal_id, max_results=10):
-    url = (
-        "https://www.googleapis.com/youtube/v3/search"
-        f"?key={API_KEY}"
-        f"&channelId={canal_id}"
-        "&part=snippet"
-        "&order=date"
-        f"&maxResults={max_results}"
-    )
-    response = requests.get(url)
-    if response.status_code != 200:
-        st.error(f"Erro ao acessar API: {response.status_code}")
-        return []
-    data = response.json()
-    videos = []
-    for item in data.get("items", []):
-        if "title" in item["snippet"]:
-            videos.append({
-                "title": item["snippet"]["title"],
-                "url": f"https://www.youtube.com/watch?v={item['id'].get('videoId')}"
-            })
-    return videos
+# Título
+st.title("🔍 Radar de Notícias")
 
-def gerar_nuvem(videos, canal):
-    if not videos:
-        st.warning(f"Nenhum vídeo encontrado para o canal {canal}.")
-        return
-    texto = " ".join(video["title"] for video in videos if video["title"])
-    if not texto.strip():
-        st.warning(f"Nenhum título disponível para gerar nuvem no canal {canal}.")
-        return
-    try:
-        wordcloud = WordCloud(width=800, height=400, background_color='white').generate(texto)
-        st.subheader(f"Nuvem de palavras - {canal}")
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.imshow(wordcloud, interpolation='bilinear')
-        ax.axis("off")
-        st.pyplot(fig)
-    except ValueError as e:
-        st.error(f"Erro ao gerar nuvem de palavras: {e}")
+# Busca dados do YouTube
+if API_KEY:
+    st.header("📺 Vídeos do YouTube")
+    all_videos = []
+    for channel in YOUTUBE_CHANNELS:
+        videos = get_youtube_data(API_KEY, channel)
+        all_videos.extend(videos)
+    
+    # Exibe tabela
+    df = pd.DataFrame(all_videos)
+    st.dataframe(df)
 
-# App Streamlit
-st.title("📺 Radar de Notícias - UOL e CartaCapital")
-
-for nome, canal_id in CANAIS.items():
-    st.header(f"🎥 {nome}")
-    videos = buscar_videos(canal_id)
-    gerar_nuvem(videos, nome)
-    for video in videos:
-        st.markdown(f"- [{video['title']}]({video['url']})")
+    # Nuvem de palavras
+    if len(all_videos) > 0:
+        st.header("📊 Nuvem de Palavras")
+        generate_wordcloud([video['title'] for video in all_videos])
+else:
+    st.error("❌ Adicione sua API Key do YouTube no arquivo
