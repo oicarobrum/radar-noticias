@@ -18,19 +18,4 @@ st.title("🔍 Radar de Notícias")
 
 # Busca dados do YouTube
 if API_KEY:
-    st.header("📺 Vídeos do YouTube")
-    all_videos = []
-    for channel in YOUTUBE_CHANNELS:
-        videos = get_youtube_data(API_KEY, channel)
-        all_videos.extend(videos)
-    
-    # Exibe tabela
-    df = pd.DataFrame(all_videos)
-    st.dataframe(df)
-
-    # Nuvem de palavras
-    if len(all_videos) > 0:
-        st.header("📊 Nuvem de Palavras")
-        generate_wordcloud([video['title'] for video in all_videos])
-else:
-    st.error("❌ Adicione sua API Key do YouTube no arquivo
+    st.header("📺
